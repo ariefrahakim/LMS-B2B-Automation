@@ -63,6 +63,9 @@ jobs:
       - name: Cache Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Prepare config.properties from template
+        run: cp src/resources/config.properties.example src/resources/config.properties
+
       - name: Inject secrets into config.properties
         env:
           SPORT_API_EMAIL: ${{ secrets.SPORT_API_EMAIL }}
@@ -104,6 +107,9 @@ jobs:
 
       - name: Cache Gradle
         uses: gradle/actions/setup-gradle@v3
+
+      - name: Prepare config.properties from template
+        run: cp src/resources/config.properties.example src/resources/config.properties
 
       - name: Inject secrets into config.properties
         env:
@@ -157,6 +163,9 @@ jobs:
 
       - name: Cache Gradle
         uses: gradle/actions/setup-gradle@v3
+
+      - name: Prepare config.properties from template
+        run: cp src/resources/config.properties.example src/resources/config.properties
 
       - name: Inject secrets into config.properties
         env:
