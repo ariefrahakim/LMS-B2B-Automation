@@ -1,0 +1,16 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
+<!--
+    REST API — Sport Activity suite.
+    Invoked by the Gradle `sportActivityTest` task.
+-->
+<suite name="Sport Activity Suite" verbose="1" parallel="false">
+    <test name="Sport Activity Tests">
+        <classes>
+            <class name="api.tests.auth.LoginTest"/>
+            <class name="api.tests.sportActivity.CreateSportActivityTest"/>
+            <class name="api.tests.sportActivity.GetSportActivityByIdTest"/>
+            <class name="api.tests.sportActivity.UpdateSportActivityTest"/>
+            <class name="api.tests.sportActivity.DeleteSportActivityByIdTest"/>
+        </classes>
+    </test>
+</suite>

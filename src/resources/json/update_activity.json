@@ -1,0 +1,13 @@
+{
+  "sport_category_id": "79",
+  "city_id": 3172,
+  "title": "Sepak bola asik, join yuk test",
+  "description": "*MF TANGSEL x MF DEPOK x MF BOGOR*",
+  "slot": 4,
+  "price": 70000,
+  "address": "Lapangan Revo, Jakarta Timur",
+  "activity_date": "{{DATE}}",
+  "start_time": "06:00",
+  "end_time": "07:00",
+  "map_url": "https://maps.app.goo.gl/h1AV4bfB2cojJMxK7"
+}

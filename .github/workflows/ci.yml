@@ -1,0 +1,140 @@
+# -----------------------------------------------------------------------------
+# CI workflow — Sport Activity API, GraphQL API, and Selenium/BDD Web UI tests.
+#
+# Two ways to trigger:
+#
+#   1. AUTOMATIC (push / pull_request): runs the full matrix (all three suites
+#      in parallel).
+#
+#   2. MANUAL from the Actions tab (workflow_dispatch): pick a single suite
+#      from a dropdown:
+#         - all             → sportActivity + graphql + web (default)
+#         - sportActivity   → REST API only
+#         - graphql         → GraphQL API only
+#         - web             → Selenium + Cucumber (needs Chrome)
+#
+# The `suite` input is the dropdown UI in the "Run workflow" panel.
+# -----------------------------------------------------------------------------
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Which test suite to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - sportActivity
+          - graphql
+          - web
+
+jobs:
+  # ------------------------------------------------------------------
+  # REST API — Sport Activity
+  # ------------------------------------------------------------------
+  sport-activity-tests:
+    name: REST API - Sport Activity
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'all' || github.event.inputs.suite == 'sportActivity' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Cache Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Run Sport Activity suite
+        run: ./gradlew sportActivityTest --no-daemon
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sport-activity-report
+          path: |
+            build/reports/tests/sportActivityTest/
+            build/test-results/sportActivityTest/
+
+  # ------------------------------------------------------------------
+  # GraphQL API — all modules
+  # ------------------------------------------------------------------
+  graphql-tests:
+    name: GraphQL API
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'all' || github.event.inputs.suite == 'graphql' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Cache Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Run GraphQL suite
+        run: ./gradlew graphqlTest --no-daemon
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: graphql-report
+          path: |
+            build/reports/tests/graphqlTest/
+            build/test-results/graphqlTest/
+
+  # ------------------------------------------------------------------
+  # Web UI — Selenium + Cucumber (headless Chrome)
+  # ------------------------------------------------------------------
+  web-tests:
+    name: Web UI - Selenium + Cucumber
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'all' || github.event.inputs.suite == 'web' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Chrome
+        # ubuntu-latest ships Chrome pre-installed on GitHub-hosted runners.
+        # This step keeps the version explicit and installs it if missing on
+        # self-hosted runners.
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Cache Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Run Web UI suite (headless)
+        run: ./gradlew webTest --no-daemon -Dheadless=true
+
+      - name: Upload reports (TestNG + Cucumber)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-report
+          path: |
+            build/reports/tests/webTest/
+            build/test-results/webTest/
+            build/cucumber-reports/

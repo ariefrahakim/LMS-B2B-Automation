@@ -1,0 +1,72 @@
+// Gradle build for the combined API + Web (Selenium/BDD) automation project.
+plugins {
+    id 'java'
+}
+
+group = 'org.example'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // ---------- Existing API-testing stack ----------
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.18.0'
+    testImplementation 'io.rest-assured:rest-assured:5.3.1'
+    implementation 'org.json:json:20230227'
+    implementation 'org.apache.poi:poi:5.2.3'
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'
+    testImplementation 'org.testng:testng:7.10.2'
+
+    // ---------- Web UI automation (Selenium + Cucumber BDD) ----------
+    // Selenium & WebDriverManager sit in `implementation` scope because the Page Objects
+    // in src/main/java/web/pages depend on them (production-code side of the POM).
+    implementation 'org.seleniumhq.selenium:selenium-java:4.16.1'
+    implementation 'io.github.bonigarcia:webdrivermanager:5.6.3'
+    // Cucumber is test-only — glue code + runner live in src/test/java.
+    testImplementation 'io.cucumber:cucumber-java:7.14.0'
+    testImplementation 'io.cucumber:cucumber-testng:7.14.0'
+}
+
+// -------- Test tasks --------
+// One task per suite for surgical CI stages; `test` is the umbrella for the two API layers.
+//
+//   ./gradlew sportActivityTest   # REST API only (Sport Activity)
+//   ./gradlew graphqlTest         # GraphQL only
+//   ./gradlew webTest             # Selenium + Cucumber (headless Chrome)
+//   ./gradlew test                # sportActivityTest + graphqlTest (browser-less API run)
+
+test {
+    useTestNG() {
+        // Master file that pulls in sportActivityTestng.xml + graphqlTestng.xml.
+        suites 'src/test/java/runner/testng.xml'
+    }
+    systemProperty 'cucumber.publish.quiet', 'true'
+}
+
+tasks.register('sportActivityTest', Test) {
+    description = 'Runs the REST API Sport Activity suite.'
+    group = 'verification'
+    useTestNG { suites 'src/test/java/runner/sportActivityTestng.xml' }
+    testLogging.showStandardStreams = true
+}
+
+tasks.register('graphqlTest', Test) {
+    description = 'Runs the GraphQL API suite (all modules).'
+    group = 'verification'
+    useTestNG { suites 'src/test/java/runner/graphqlTestng.xml' }
+    testLogging.showStandardStreams = true
+}
+
+tasks.register('webTest', Test) {
+    description = 'Runs Selenium + Cucumber BDD tests against the LMS B2B web app.'
+    group = 'verification'
+    useTestNG { suites 'src/test/java/runner/webTestng.xml' }
+    systemProperty 'headless', System.getProperty('headless', 'true')
+    testLogging.showStandardStreams = true
+}

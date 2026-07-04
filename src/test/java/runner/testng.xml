@@ -1,0 +1,19 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
+<!--
+    Master TestNG suite — imports every layer's dedicated suite file.
+
+    Layer-specific tasks (recommended for local dev / focused CI stages):
+      ./gradlew sportActivityTest    # REST API only
+      ./gradlew graphqlTest          # GraphQL only
+      ./gradlew webTest              # Selenium + Cucumber only
+
+    `./gradlew test` runs this master suite = API layers (REST + GraphQL)
+    combined. The Web UI suite is intentionally NOT imported here because
+    it needs Chrome; run it via `./gradlew webTest` explicitly.
+-->
+<suite name="API Master Suite" verbose="1" parallel="false">
+    <suite-files>
+        <suite-file path="./sportActivityTestng.xml"/>
+        <suite-file path="./graphqlTestng.xml"/>
+    </suite-files>
+</suite>

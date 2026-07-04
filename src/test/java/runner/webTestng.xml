@@ -1,0 +1,12 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
+<!--
+    Dedicated TestNG suite for the Web UI (Selenium + Cucumber BDD) tests.
+    Invoked by the Gradle `webTest` task so the browser-based tests are opt-in.
+-->
+<suite name="Web UI Suite" verbose="1" parallel="false">
+    <test name="Web UI Tests (Selenium + Cucumber)">
+        <classes>
+            <class name="ui.runners.CucumberTestRunner"/>
+        </classes>
+    </test>
+</suite>

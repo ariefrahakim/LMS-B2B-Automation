@@ -1,0 +1,16 @@
+{
+  "angkatans": [
+    {
+      "name": "QA-Angkatan-Alpha",
+      "description": "Data-driven test angkatan alpha"
+    },
+    {
+      "name": "QA-Angkatan-Beta",
+      "description": "Data-driven test angkatan beta"
+    },
+    {
+      "name": "QA-Angkatan-Gamma",
+      "description": "Data-driven test angkatan gamma"
+    }
+  ]
+}

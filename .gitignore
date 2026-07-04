@@ -1,0 +1,22 @@
+# Build output
+build/
+.gradle/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Session / generated fixtures
+src/resources/json/graphql_session.json
+src/resources/json/angkatan_id.json
+src/resources/json/token.json
+src/resources/json/activity_id.json
+
+# Playwright artefacts (used only for local exploration)
+.playwright-mcp/
+
+# Cucumber / test reports
+build/cucumber-reports/

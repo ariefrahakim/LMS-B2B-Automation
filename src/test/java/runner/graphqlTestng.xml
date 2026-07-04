@@ -1,0 +1,80 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
+<!--
+    GraphQL API — per-module suites.
+    Invoked by the Gradle `graphqlTest` task.
+
+    Auth must run first (it stores the session cookie on disk).
+-->
+<suite name="GraphQL Suite" verbose="1" parallel="false">
+
+    <test name="GraphQL - Auth">
+        <classes>
+            <class name="api.tests.graphql.auth.LoginGraphQLTest"/>
+            <class name="api.tests.graphql.auth.GetMeTest"/>
+            <class name="api.tests.graphql.auth.AuthNegativeTest"/>
+        </classes>
+    </test>
+
+    <test name="GraphQL - System">
+        <classes>
+            <class name="api.tests.graphql.system.PingTest"/>
+        </classes>
+    </test>
+
+    <test name="GraphQL - Company">
+        <classes>
+            <class name="api.tests.graphql.company.CompanyTest"/>
+            <class name="api.tests.graphql.company.CompanyNegativeTest"/>
+        </classes>
+    </test>
+
+    <test name="GraphQL - Angkatan (Cohort)">
+        <classes>
+            <class name="api.tests.graphql.angkatan.AngkatanCRUDTest"/>
+            <class name="api.tests.graphql.angkatan.AngkatanDataDrivenTest"/>
+            <class name="api.tests.graphql.angkatan.AngkatanNegativeTest"/>
+        </classes>
+    </test>
+
+    <test name="GraphQL - Employee">
+        <classes>
+            <class name="api.tests.graphql.employee.EmployeeCRUDTest"/>
+            <class name="api.tests.graphql.employee.EmployeeNegativeTest"/>
+        </classes>
+    </test>
+
+    <test name="GraphQL - Division (Class)">
+        <classes>
+            <class name="api.tests.graphql.division.DivisionCRUDTest"/>
+            <class name="api.tests.graphql.division.DivisionNegativeTest"/>
+        </classes>
+    </test>
+
+    <test name="GraphQL - Program (Program Studi)">
+        <classes>
+            <class name="api.tests.graphql.program.ProgramCRUDTest"/>
+            <class name="api.tests.graphql.program.ProgramNegativeTest"/>
+        </classes>
+    </test>
+
+    <test name="GraphQL - Announcement">
+        <classes>
+            <class name="api.tests.graphql.announcement.AnnouncementCRUDTest"/>
+            <class name="api.tests.graphql.announcement.AnnouncementNegativeTest"/>
+        </classes>
+    </test>
+
+    <test name="GraphQL - Bootcamp (Fast-Track Class)">
+        <classes>
+            <class name="api.tests.graphql.bootcamp.BootcampCRUDTest"/>
+            <class name="api.tests.graphql.bootcamp.BootcampNegativeTest"/>
+        </classes>
+    </test>
+
+    <test name="GraphQL - Media Library">
+        <classes>
+            <class name="api.tests.graphql.media.MediaLibraryTest"/>
+            <class name="api.tests.graphql.media.MediaNegativeTest"/>
+        </classes>
+    </test>
+</suite>

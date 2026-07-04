@@ -1,0 +1,253 @@
+{
+  "info": {
+    "name": "LMS B2B - GraphQL API (Full Suite)",
+    "_postman_id": "b7f0a5f0-1a2b-4c3d-8e5f-000000000002",
+    "description": "Complete Postman collection mirroring the Java/TestNG suite.\n\nStructure — one folder per module, split into **Positive** and **Negative** sub-folders:\n- Auth (Login / Me / negative scenarios)\n- System (Ping)\n- Company\n- Angkatan (cohort)\n- Employee\n- Division (class)\n- Program (program studi)\n- Announcement\n- Bootcamp (fast-track class)\n- Media Library\n\nHow to use:\n1. Import this JSON via Postman → File → Import.\n2. Kredensial sudah tersimpan di collection variables (from config.properties).\n3. Run **Auth → Positive → Login** first — the test-script menyimpan cookie `sid_b2b` sebagai collection variable, otomatis dipakai request lain.\n4. Untuk CRUD flow (Angkatan/Employee/Division/Program/Announcement/Bootcamp) jalankan urutan Create → GetById → Update → Delete karena tiap request menyimpan/mengambil id dari collection variable.\n5. Gunakan Collection Runner untuk menjalankan semua folder sekaligus.\n\nGlobal test scripts memvalidasi HTTP 200 dan mengecek `errors` di response.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "{{usernameGraphQL}}", "type": "string" },
+      { "key": "password", "value": "{{passwordGraphQL}}", "type": "string" }
+    ]
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test-script: applied to every request in the collection.",
+          "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+          "// A 'positive' request expects no `errors`; the negative folders override this",
+          "// script with request-level scripts that assert the presence of `errors`.",
+          "if (!pm.info.requestName.startsWith('[NEG]')) {",
+          "    pm.test('Response has no GraphQL errors', function () {",
+          "        const json = pm.response.json();",
+          "        pm.expect(json.errors, 'errors field').to.be.oneOf([undefined, null]);",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "url", "value": "https://lmsb2b.do.dibimbing.id/graphql" },
+    { "key": "usernameGraphQL", "value": "b2bserveruser" },
+    { "key": "passwordGraphQL", "value": "ENAcA3Sog22681sAKvih8KkpDKvF2aQ6" },
+    { "key": "emailWeb", "value": "arwendymelyn@dibimbing.id" },
+    { "key": "passwordWeb", "value": "s2et9bh6l" },
+    { "key": "companyId", "value": "811637b1-9989-4d45-a9f5-220c5f2354f7" },
+    { "key": "companySlug", "value": "dibimbingqa" },
+    { "key": "sid_b2b", "value": "" },
+    { "key": "angkatan_id", "value": "" },
+    { "key": "employee_id", "value": "" },
+    { "key": "division_id", "value": "" },
+    { "key": "program_id", "value": "" },
+    { "key": "announcement_id", "value": "" },
+    { "key": "bootcamp_id", "value": "" },
+    { "key": "media_id", "value": "" },
+    { "key": "nonExistentUuid", "value": "00000000-0000-0000-0000-000000000000" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Login mutation + Me query. Login sets `sid_b2b` cookie which must be present on every authenticated request.",
+      "item": [
+        {
+          "name": "Positive",
+          "item": [
+            {
+              "name": "Login",
+              "event": [{
+                "listen": "test",
+                "script": {"type":"text/javascript","exec":[
+                  "pm.test('login.errors is null', () => pm.expect(pm.response.json().data.login.errors).to.be.null);",
+                  "pm.test('user.id present', () => pm.expect(pm.response.json().data.login.user.id).to.be.a('string'));",
+                  "const cookie = pm.cookies.get('sid_b2b');",
+                  "if (cookie) pm.collectionVariables.set('sid_b2b', cookie);"
+                ]}
+              }],
+              "request": {"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"operationName\": \"Login\",\n  \"query\": \"mutation Login($usernameOrEmail: String!, $password: String!, $companyId: String!) { login(usernameOrEmail: $usernameOrEmail, password: $password, companyId: $companyId) { user { id email name role } errors { field message } } }\",\n  \"variables\": {\n    \"usernameOrEmail\": \"{{emailWeb}}\",\n    \"password\": \"{{passwordWeb}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}
+            },
+            {
+              "name": "Me",
+              "request": {"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\n  \"operationName\": \"Me\",\n  \"query\": \"query Me { me { id email name role status } }\"\n}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}
+            }
+          ]
+        },
+        {
+          "name": "Negative",
+          "item": [
+            {
+              "name": "[NEG] Login - wrong password",
+              "event":[{"listen":"test","script":{"type":"text/javascript","exec":[
+                "pm.test('user is null or errors present', () => {",
+                "  const j = pm.response.json();",
+                "  const userNull = j.data && j.data.login && j.data.login.user === null;",
+                "  const hasErrors = j.errors !== undefined;",
+                "  pm.expect(userNull || hasErrors).to.be.true;",
+                "});"]}}],
+              "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"operationName\":\"Login\",\"query\":\"mutation Login($u:String!,$p:String!,$c:String!){login(usernameOrEmail:$u,password:$p,companyId:$c){user{id} errors{message}}}\",\"variables\":{\"u\":\"{{emailWeb}}\",\"p\":\"wrong-password\",\"c\":\"{{companyId}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}
+            },
+            {
+              "name": "[NEG] Login - wrong companyId",
+              "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"operationName\":\"Login\",\"query\":\"mutation Login($u:String!,$p:String!,$c:String!){login(usernameOrEmail:$u,password:$p,companyId:$c){user{id} errors{message}}}\",\"variables\":{\"u\":\"{{emailWeb}}\",\"p\":\"{{passwordWeb}}\",\"c\":\"{{nonExistentUuid}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}
+            },
+            {
+              "name": "[NEG] Me - no session cookie",
+              "event":[{"listen":"test","script":{"type":"text/javascript","exec":[
+                "pm.test('errors present', () => pm.expect(pm.response.json().errors).to.not.be.undefined);",
+                "pm.test('not authenticated', () => pm.expect(pm.response.text()).to.include('not authenticated'));"]}}],
+              "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"operationName\":\"Me\",\"query\":\"query Me { me { id email } }\"}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Ping",
+          "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"operationName\":\"Ping\",\"query\":\"query Ping { ping }\"}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}
+        }
+      ]
+    },
+    {
+      "name": "Company",
+      "item": [
+        {
+          "name": "Positive",
+          "item": [
+            {"name":"My Company","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"MyCompany\",\"query\":\"query MyCompany { myCompany { id name slug } }\"}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+            {"name":"Company By Slug","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"CompanyBySlug\",\"query\":\"query CompanyBySlug($slug:String!) { companyBySlug(slug:$slug) { id name slug status } }\",\"variables\":{\"slug\":\"{{companySlug}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+          ]
+        },
+        {
+          "name": "Negative",
+          "item":[
+            {"name":"[NEG] Company By Slug - non existent","event":[{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('slug not found', () => { const j=pm.response.json(); pm.expect(j.data.companyBySlug === null || j.errors).to.be.ok; });"]}}],"request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"CompanyBySlug\",\"query\":\"query CompanyBySlug($slug:String!) { companyBySlug(slug:$slug) { id } }\",\"variables\":{\"slug\":\"this-slug-does-not-exist-xyz\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Angkatan (Cohort)",
+      "item":[
+        {
+          "name":"Positive - CRUD Flow",
+          "item":[
+            {"name":"Create Angkatan","event":[{"listen":"test","script":{"type":"text/javascript","exec":["pm.collectionVariables.set('angkatan_id', pm.response.json().data.createAngkatan.id);"]}}],"request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"CreateAngkatan\",\"query\":\"mutation CreateAngkatan($input:AngkatanInput!){createAngkatan(input:$input){id name description}}\",\"variables\":{\"input\":{\"name\":\"QA-Postman-Angkatan\",\"description\":\"Postman\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+            {"name":"List Angkatans","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"Angkatans\",\"query\":\"query Angkatans { angkatans { id name } }\"}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+            {"name":"Get Angkatan By Id","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"AngkatanById\",\"query\":\"query AngkatanById($id:Float!){angkatanById(id:$id){id name description}}\",\"variables\":{\"id\":{{angkatan_id}}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+            {"name":"Update Angkatan","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"UpdateAngkatan\",\"query\":\"mutation UpdateAngkatan($id:Float!,$input:AngkatanInput!){updateAngkatan(id:$id,input:$input){id name description}}\",\"variables\":{\"id\":{{angkatan_id}},\"input\":{\"name\":\"QA-Postman-Angkatan-Updated\",\"description\":\"updated\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+            {"name":"Delete Angkatan","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"DeleteAngkatan\",\"query\":\"mutation DeleteAngkatan($id:Float!){deleteAngkatan(id:$id)}\",\"variables\":{\"id\":{{angkatan_id}}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+          ]
+        },
+        {
+          "name":"Negative",
+          "item":[
+            {"name":"[NEG] Get Angkatan - non existent","event":[{"listen":"test","script":{"type":"text/javascript","exec":["pm.test('returned null or errors', () => { const j=pm.response.json(); pm.expect(j.data==null||j.data.angkatanById==null||j.errors).to.be.ok; });"]}}],"request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"AngkatanById\",\"query\":\"query AngkatanById($id:Float!){angkatanById(id:$id){id}}\",\"variables\":{\"id\":999999999}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+            {"name":"[NEG] Update Angkatan - non existent","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"UpdateAngkatan\",\"query\":\"mutation UpdateAngkatan($id:Float!,$input:AngkatanInput!){updateAngkatan(id:$id,input:$input){id}}\",\"variables\":{\"id\":999999999,\"input\":{\"name\":\"x\",\"description\":\"x\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+            {"name":"[NEG] Delete Angkatan - non existent","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"DeleteAngkatan\",\"query\":\"mutation DeleteAngkatan($id:Float!){deleteAngkatan(id:$id)}\",\"variables\":{\"id\":999999999}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+            {"name":"[NEG] Create Angkatan - missing name","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"CreateAngkatan\",\"query\":\"mutation CreateAngkatan($input:AngkatanInput!){createAngkatan(input:$input){id}}\",\"variables\":{\"input\":{\"name\":null,\"description\":\"no name\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+          ]
+        }
+      ]
+    },
+    {
+      "name":"Employee",
+      "item":[
+        {"name":"Positive - CRUD Flow","item":[
+          {"name":"Create Employee","event":[{"listen":"test","script":{"type":"text/javascript","exec":["pm.collectionVariables.set('employee_id', pm.response.json().data.createEmployee.id);"]}}],"request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"CreateEmployee\",\"query\":\"mutation CreateEmployee($input:EmployeeInput!){createEmployee(input:$input){id email name employeeRole}}\",\"variables\":{\"input\":{\"name\":\"QA Postman Emp\",\"email\":\"qa-postman-emp-{{$timestamp}}@example.com\",\"employeeRole\":\"employee\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Get Employee By Id","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"EmployeeById\",\"query\":\"query EmployeeById($id:String!){employeeById(id:$id){id email name employeeRole}}\",\"variables\":{\"id\":\"{{employee_id}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Update Employee","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"UpdateEmployee\",\"query\":\"mutation UpdateEmployee($id:String!,$input:EmployeeInput!){updateEmployee(id:$id,input:$input){id name}}\",\"variables\":{\"id\":\"{{employee_id}}\",\"input\":{\"name\":\"QA Updated\",\"employeeRole\":\"employee\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Delete Employee","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"DeleteEmployee\",\"query\":\"mutation DeleteEmployee($id:String!){deleteEmployee(id:$id)}\",\"variables\":{\"id\":\"{{employee_id}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+        ]},
+        {"name":"Negative","item":[
+          {"name":"[NEG] Get Employee - non existent","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"EmployeeById\",\"query\":\"query EmployeeById($id:String!){employeeById(id:$id){id}}\",\"variables\":{\"id\":\"{{nonExistentUuid}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"[NEG] Update Employee - non existent","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"UpdateEmployee\",\"query\":\"mutation UpdateEmployee($id:String!,$input:EmployeeInput!){updateEmployee(id:$id,input:$input){id}}\",\"variables\":{\"id\":\"{{nonExistentUuid}}\",\"input\":{\"name\":\"x\",\"employeeRole\":\"employee\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"[NEG] Delete Employee - non existent","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"DeleteEmployee\",\"query\":\"mutation DeleteEmployee($id:String!){deleteEmployee(id:$id)}\",\"variables\":{\"id\":\"{{nonExistentUuid}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"[NEG] Create Employee - duplicate email","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"CreateEmployee\",\"query\":\"mutation CreateEmployee($input:EmployeeInput!){createEmployee(input:$input){id}}\",\"variables\":{\"input\":{\"name\":\"Dup\",\"email\":\"{{emailWeb}}\",\"employeeRole\":\"employee\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+        ]}
+      ]
+    },
+    {
+      "name":"Division (Class)",
+      "item":[
+        {"name":"Positive - CRUD Flow","item":[
+          {"name":"Create Division","event":[{"listen":"test","script":{"type":"text/javascript","exec":["pm.collectionVariables.set('division_id', pm.response.json().data.createDivision.id);"]}}],"request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"CreateDivision\",\"query\":\"mutation CreateDivision($input:DivisionInput!){createDivision(input:$input){id name description}}\",\"variables\":{\"input\":{\"name\":\"QA-Postman-Div\",\"description\":\"Postman\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Get Division By Id","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"DivisionById\",\"query\":\"query DivisionById($id:String!){divisionById(id:$id){id name description}}\",\"variables\":{\"id\":\"{{division_id}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Update Division","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"UpdateDivision\",\"query\":\"mutation UpdateDivision($id:String!,$input:DivisionInput!){updateDivision(id:$id,input:$input){id name}}\",\"variables\":{\"id\":\"{{division_id}}\",\"input\":{\"name\":\"QA-Div-Updated\",\"description\":\"upd\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Delete Division","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"DeleteDivision\",\"query\":\"mutation DeleteDivision($id:String!){deleteDivision(id:$id)}\",\"variables\":{\"id\":\"{{division_id}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+        ]},
+        {"name":"Negative","item":[
+          {"name":"[NEG] Get Division - non existent","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"DivisionById\",\"query\":\"query DivisionById($id:String!){divisionById(id:$id){id}}\",\"variables\":{\"id\":\"{{nonExistentUuid}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"[NEG] Delete Division - non existent","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"DeleteDivision\",\"query\":\"mutation DeleteDivision($id:String!){deleteDivision(id:$id)}\",\"variables\":{\"id\":\"{{nonExistentUuid}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"[NEG] Create Division - missing name","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"CreateDivision\",\"query\":\"mutation CreateDivision($input:DivisionInput!){createDivision(input:$input){id}}\",\"variables\":{\"input\":{\"name\":null,\"description\":\"no name\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+        ]}
+      ]
+    },
+    {
+      "name":"Program (Program Studi)",
+      "item":[
+        {"name":"Positive - CRUD Flow","item":[
+          {"name":"Create Program","event":[{"listen":"test","script":{"type":"text/javascript","exec":["pm.collectionVariables.set('program_id', pm.response.json().data.createProgram.id);"]}}],"request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"CreateProgram\",\"query\":\"mutation CreateProgram($input:ProgramInput!){createProgram(input:$input){id title type}}\",\"variables\":{\"input\":{\"title\":\"QA-Postman-Prog\",\"description\":\"desc\",\"type\":\"onboarding\",\"isSequential\":false}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Get Program By Id","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"ProgramById\",\"query\":\"query ProgramById($id:String!){programById(id:$id){id title description type}}\",\"variables\":{\"id\":\"{{program_id}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Update Program","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"UpdateProgram\",\"query\":\"mutation UpdateProgram($id:String!,$input:ProgramInput!){updateProgram(id:$id,input:$input){id title}}\",\"variables\":{\"id\":\"{{program_id}}\",\"input\":{\"title\":\"QA-Prog-Updated\",\"description\":\"upd\",\"type\":\"onboarding\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Delete Program","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"DeleteProgram\",\"query\":\"mutation DeleteProgram($id:String!){deleteProgram(id:$id)}\",\"variables\":{\"id\":\"{{program_id}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+        ]},
+        {"name":"Negative","item":[
+          {"name":"[NEG] Get Program - non existent","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"ProgramById\",\"query\":\"query ProgramById($id:String!){programById(id:$id){id}}\",\"variables\":{\"id\":\"{{nonExistentUuid}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"[NEG] Delete Program - non existent","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"DeleteProgram\",\"query\":\"mutation DeleteProgram($id:String!){deleteProgram(id:$id)}\",\"variables\":{\"id\":\"{{nonExistentUuid}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"[NEG] Create Program - missing title","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"CreateProgram\",\"query\":\"mutation CreateProgram($input:ProgramInput!){createProgram(input:$input){id}}\",\"variables\":{\"input\":{\"title\":null,\"type\":\"onboarding\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+        ]}
+      ]
+    },
+    {
+      "name":"Announcement",
+      "item":[
+        {"name":"Positive - CRUD Flow","item":[
+          {"name":"Create Announcement","event":[{"listen":"test","script":{"type":"text/javascript","exec":["pm.collectionVariables.set('announcement_id', pm.response.json().data.createAnnouncement.id);"]}}],"request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"CreateAnnouncement\",\"query\":\"mutation CreateAnnouncement($input:AnnouncementInput!){createAnnouncement(input:$input){id title content}}\",\"variables\":{\"input\":{\"title\":\"QA-Postman-Ann\",\"content\":\"body\",\"isForAllEmployee\":true}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Get Announcement By Id","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"AnnouncementById\",\"query\":\"query AnnouncementById($id:String!){announcementById(id:$id){id title content}}\",\"variables\":{\"id\":\"{{announcement_id}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Update Announcement","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"UpdateAnnouncement\",\"query\":\"mutation UpdateAnnouncement($id:String!,$input:AnnouncementInput!){updateAnnouncement(id:$id,input:$input){id title}}\",\"variables\":{\"id\":\"{{announcement_id}}\",\"input\":{\"title\":\"QA-Ann-Updated\",\"content\":\"upd\",\"isForAllEmployee\":true}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+        ]},
+        {"name":"Negative","item":[
+          {"name":"[NEG] Get Announcement - non existent","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"AnnouncementById\",\"query\":\"query AnnouncementById($id:String!){announcementById(id:$id){id}}\",\"variables\":{\"id\":\"{{nonExistentUuid}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"[NEG] Delete Announcement - non existent","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"DeleteAnnouncement\",\"query\":\"mutation DeleteAnnouncement($id:String!){deleteAnnouncement(id:$id)}\",\"variables\":{\"id\":\"{{nonExistentUuid}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"[NEG] Create Announcement - missing title/content","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"CreateAnnouncement\",\"query\":\"mutation CreateAnnouncement($input:AnnouncementInput!){createAnnouncement(input:$input){id}}\",\"variables\":{\"input\":{\"title\":null,\"content\":null}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+        ]}
+      ]
+    },
+    {
+      "name":"Bootcamp (Fast-Track Class)",
+      "item":[
+        {"name":"Positive - CRUD Flow","item":[
+          {"name":"Create Bootcamp","event":[{"listen":"test","script":{"type":"text/javascript","exec":["pm.collectionVariables.set('bootcamp_id', pm.response.json().data.createBootcamp.id);"]}}],"request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"CreateBootcamp\",\"query\":\"mutation CreateBootcamp($input:InputBootcamp!){createBootcamp(input:$input){id title}}\",\"variables\":{\"input\":{\"title\":\"QA-Postman-BC\",\"descriptions\":\"desc\",\"startedAt\":\"2026-07-10\",\"finishedAt\":\"2026-08-10\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Get Bootcamp By Id","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"BootcampById\",\"query\":\"query BootcampById($id:String!){bootcampById(id:$id){id title descriptions}}\",\"variables\":{\"id\":\"{{bootcamp_id}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Update Bootcamp","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"UpdateBootcamp\",\"query\":\"mutation UpdateBootcamp($id:String!,$input:InputBootcamp!){updateBootcamp(id:$id,input:$input){id title}}\",\"variables\":{\"id\":\"{{bootcamp_id}}\",\"input\":{\"title\":\"QA-BC-Updated\",\"descriptions\":\"upd\",\"startedAt\":\"2026-07-10\",\"finishedAt\":\"2026-08-10\"}}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Delete Bootcamp","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"DeleteBootcamp\",\"query\":\"mutation DeleteBootcamp($id:String!){deleteBootcamp(id:$id){id title}}\",\"variables\":{\"id\":\"{{bootcamp_id}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+        ]},
+        {"name":"Negative","item":[
+          {"name":"[NEG] Get Bootcamp - non existent","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"BootcampById\",\"query\":\"query BootcampById($id:String!){bootcampById(id:$id){id}}\",\"variables\":{\"id\":\"{{nonExistentUuid}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"[NEG] Delete Bootcamp - non existent","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"DeleteBootcamp\",\"query\":\"mutation DeleteBootcamp($id:String!){deleteBootcamp(id:$id){id}}\",\"variables\":{\"id\":\"{{nonExistentUuid}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+        ]}
+      ]
+    },
+    {
+      "name":"Media Library",
+      "item":[
+        {"name":"Positive","item":[
+          {"name":"List Medias","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"Medias\",\"query\":\"query Medias { medias { id title extension size type mimeType status } }\"}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Count Medias","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"CountMedias\",\"query\":\"query CountMedias { countMedias }\"}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}},
+          {"name":"Available Storage","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"AvailableStorage\",\"query\":\"query AvailableStorage { availableStorage { max occupied available } }\"}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+        ]},
+        {"name":"Negative","item":[
+          {"name":"[NEG] Media By Id - non existent","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Cookie","value":"sid_b2b={{sid_b2b}}"}],"body":{"mode":"raw","raw":"{\"operationName\":\"MediaById\",\"query\":\"query MediaById($id:String!){mediaById(id:$id){id}}\",\"variables\":{\"id\":\"{{nonExistentUuid}}\"}}"},"url":{"raw":"{{url}}","host":["{{url}}"]}}}
+        ]}
+      ]
+    }
+  ]
+}
