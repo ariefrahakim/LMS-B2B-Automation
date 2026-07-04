@@ -1,0 +1,25 @@
+# --------------------------------------------------------------------------
+# Example config for local development.
+#
+# Copy this file to `config.properties` and fill in the real values.
+# In CI the values are injected from GitHub Secrets — see .github/workflows/ci.yml.
+# --------------------------------------------------------------------------
+
+# REST API (Sport Activity) — non-sensitive base URL is safe to keep in git.
+baseUrl=https://sport-reservation-2-api-bootcamp.do.dibimbing.id/api/v1
+email=REPLACE_WITH_SPORT_API_EMAIL
+password=REPLACE_WITH_SPORT_API_PASSWORD
+
+# GraphQL API endpoint (public URL, safe to keep in git).
+url=https://lmsb2b.do.dibimbing.id/graphql
+usernameGraphQL=REPLACE_WITH_GRAPHQL_BASIC_USERNAME
+passwordGraphQL=REPLACE_WITH_GRAPHQL_BASIC_PASSWORD
+
+# Web app under test.
+webUrl=https://lms-b2b.do.dibimbing.id/dibimbingqa/login
+emailWeb=REPLACE_WITH_LMS_ADMIN_EMAIL
+passwordWeb=REPLACE_WITH_LMS_ADMIN_PASSWORD
+
+# Company identifiers. companyId is used by the GraphQL login mutation.
+companyId=REPLACE_WITH_COMPANY_ID
+companySlug=dibimbingqa

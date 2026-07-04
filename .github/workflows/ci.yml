@@ -2,18 +2,25 @@
 # CI workflow — Sport Activity API, GraphQL API, and Selenium/BDD Web UI tests.
 #
 # Two ways to trigger:
+#   1. AUTOMATIC (push / pull_request): runs the full matrix in parallel.
+#   2. MANUAL (workflow_dispatch): pick a suite from a dropdown.
 #
-#   1. AUTOMATIC (push / pull_request): runs the full matrix (all three suites
-#      in parallel).
+# Secrets injection
+# -----------------
+# The repo's `src/resources/config.properties` is a template with placeholders.
+# Before running tests, the "Inject secrets" step overwrites the sensitive
+# fields with the values stored in GitHub → Settings → Secrets and variables
+# → Actions. Required secrets:
 #
-#   2. MANUAL from the Actions tab (workflow_dispatch): pick a single suite
-#      from a dropdown:
-#         - all             → sportActivity + graphql + web (default)
-#         - sportActivity   → REST API only
-#         - graphql         → GraphQL API only
-#         - web             → Selenium + Cucumber (needs Chrome)
+#   LMS_ADMIN_EMAIL          → replaces  emailWeb
+#   LMS_ADMIN_PASSWORD       → replaces  passwordWeb
+#   GRAPHQL_BASIC_USERNAME   → replaces  usernameGraphQL
+#   GRAPHQL_BASIC_PASSWORD   → replaces  passwordGraphQL
+#   SPORT_API_EMAIL          → replaces  email
+#   SPORT_API_PASSWORD       → replaces  password
+#   COMPANY_ID               → replaces  companyId
 #
-# The `suite` input is the dropdown UI in the "Run workflow" panel.
+# Non-sensitive values (baseUrl, url, webUrl, companySlug) stay in the file.
 # -----------------------------------------------------------------------------
 name: CI
 
@@ -56,6 +63,16 @@ jobs:
       - name: Cache Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Inject secrets into config.properties
+        env:
+          SPORT_API_EMAIL: ${{ secrets.SPORT_API_EMAIL }}
+          SPORT_API_PASSWORD: ${{ secrets.SPORT_API_PASSWORD }}
+        run: |
+          sed -i \
+            -e "s|^email=.*|email=${SPORT_API_EMAIL}|" \
+            -e "s|^password=.*|password=${SPORT_API_PASSWORD}|" \
+            src/resources/config.properties
+
       - name: Run Sport Activity suite
         run: ./gradlew sportActivityTest --no-daemon
 
@@ -88,6 +105,22 @@ jobs:
       - name: Cache Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Inject secrets into config.properties
+        env:
+          LMS_ADMIN_EMAIL: ${{ secrets.LMS_ADMIN_EMAIL }}
+          LMS_ADMIN_PASSWORD: ${{ secrets.LMS_ADMIN_PASSWORD }}
+          GRAPHQL_BASIC_USERNAME: ${{ secrets.GRAPHQL_BASIC_USERNAME }}
+          GRAPHQL_BASIC_PASSWORD: ${{ secrets.GRAPHQL_BASIC_PASSWORD }}
+          COMPANY_ID: ${{ secrets.COMPANY_ID }}
+        run: |
+          sed -i \
+            -e "s|^emailWeb=.*|emailWeb=${LMS_ADMIN_EMAIL}|" \
+            -e "s|^passwordWeb=.*|passwordWeb=${LMS_ADMIN_PASSWORD}|" \
+            -e "s|^usernameGraphQL=.*|usernameGraphQL=${GRAPHQL_BASIC_USERNAME}|" \
+            -e "s|^passwordGraphQL=.*|passwordGraphQL=${GRAPHQL_BASIC_PASSWORD}|" \
+            -e "s|^companyId=.*|companyId=${COMPANY_ID}|" \
+            src/resources/config.properties
+
       - name: Run GraphQL suite
         run: ./gradlew graphqlTest --no-daemon
 
@@ -118,13 +151,24 @@ jobs:
           java-version: '17'
 
       - name: Install Chrome
-        # ubuntu-latest ships Chrome pre-installed on GitHub-hosted runners.
-        # This step keeps the version explicit and installs it if missing on
-        # self-hosted runners.
+        # GitHub-hosted ubuntu-latest already has Chrome; this step ensures it
+        # on self-hosted runners as well.
         uses: browser-actions/setup-chrome@v1
 
       - name: Cache Gradle
         uses: gradle/actions/setup-gradle@v3
+
+      - name: Inject secrets into config.properties
+        env:
+          LMS_ADMIN_EMAIL: ${{ secrets.LMS_ADMIN_EMAIL }}
+          LMS_ADMIN_PASSWORD: ${{ secrets.LMS_ADMIN_PASSWORD }}
+          COMPANY_ID: ${{ secrets.COMPANY_ID }}
+        run: |
+          sed -i \
+            -e "s|^emailWeb=.*|emailWeb=${LMS_ADMIN_EMAIL}|" \
+            -e "s|^passwordWeb=.*|passwordWeb=${LMS_ADMIN_PASSWORD}|" \
+            -e "s|^companyId=.*|companyId=${COMPANY_ID}|" \
+            src/resources/config.properties
 
       - name: Run Web UI suite (headless)
         run: ./gradlew webTest --no-daemon -Dheadless=true
