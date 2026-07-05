@@ -97,11 +97,19 @@ Each suite has its own Gradle task so CI stages can run focused subsets:
 ```bash
 ./gradlew sportActivityTest             # REST API only (Sport Activity)
 ./gradlew graphqlTest                   # GraphQL only (all 10 modules)
-./gradlew webTest                       # Selenium + Cucumber (headless Chrome)
-./gradlew webTest -Dheadless=false      # watch the browser locally
+
+./gradlew webTest                       # Selenium + Cucumber (Chrome by default)
+./gradlew webTestChrome                 # Explicit Chrome run
+./gradlew webTestFirefox                # Cross-browser: Firefox run
+./gradlew webTest -Dbrowser=firefox     # Same as webTestFirefox
+./gradlew webTest -Dheadless=false      # Watch the browser locally
 
 ./gradlew test                          # umbrella = sportActivity + graphql
 ```
+
+**Cross-browser** — `webTestChrome` and `webTestFirefox` write reports to
+separate output folders (`build/reports/tests/webTestChrome/` and
+`build/reports/tests/webTestFirefox/`) so a full-matrix run keeps both intact.
 
 Reports (regenerated per run):
 
@@ -219,10 +227,11 @@ Workflow: `.github/workflows/ci.yml`.
 
   | Value | What runs |
   |-------|-----------|
-  | `all` (default) | Every suite in parallel |
+  | `all` (default) | Every suite in parallel (REST + GraphQL + web-chrome + web-firefox) |
   | `sportActivity` | REST API only |
   | `graphql` | GraphQL API only |
-  | `web` | Selenium + Cucumber (headless Chrome) |
+  | `web-chrome` | Selenium + Cucumber, Chrome headless |
+  | `web-firefox` | Selenium + Cucumber, Firefox headless |
 
   This is powered by `workflow_dispatch.inputs.suite` in the YAML — GitHub
   renders it as a native dropdown.

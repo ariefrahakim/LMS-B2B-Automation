@@ -81,9 +81,17 @@ tests don't already give us.
 ## 3. Running
 
 ```bash
-./gradlew webTest                      # headless Chrome (CI default)
-./gradlew webTest -Dheadless=false     # open a visible browser locally
+./gradlew webTest                       # Chrome (default browser), headless (default)
+./gradlew webTestChrome                 # Explicit Chrome run
+./gradlew webTestFirefox                # Cross-browser: Firefox run
+./gradlew webTest -Dbrowser=firefox     # Same effect as webTestFirefox
+./gradlew webTest -Dheadless=false      # Open a visible browser locally
 ```
+
+Browser is picked at runtime from the `browser` system property inside
+`DriverFactory.start()` — Chrome or Firefox. Reports go to separate
+folders (`build/reports/tests/webTestChrome/` vs.
+`build/reports/tests/webTestFirefox/`) so both survive a full-matrix run.
 
 Filter by Cucumber tag:
 
@@ -134,9 +142,12 @@ Reports (regenerated per run):
   covered by a styled `<div>`, which intercepts native Selenium clicks.
   `BasePage.jsClick()` bypasses that with a `JavascriptExecutor.click()`.
 
-- **Chrome install.** `WebDriverManager` auto-downloads the matching
-  chromedriver; no manual driver setup required. GitHub-hosted runners already
-  have Chrome pre-installed.
+- **Cross-browser (Chrome + Firefox).** `DriverFactory` reads
+  `-Dbrowser=chrome|firefox` (default `chrome`) and instantiates the matching
+  `ChromeDriver` or `FirefoxDriver`. `WebDriverManager` auto-downloads the
+  right driver binary in both cases, so no manual driver setup is required.
+  GitHub-hosted runners already have Chrome; the Firefox CI job explicitly
+  installs it via `browser-actions/setup-firefox@v1`.
 
 - **Stealth flags.** `--disable-blink-features=AutomationControlled` +
   realistic User-Agent hide the "AutomationControlled" bit that Cloudflare

@@ -34,12 +34,14 @@ dependencies {
 }
 
 // -------- Test tasks --------
-// One task per suite for surgical CI stages; `test` is the umbrella for the two API layers.
+// Per-suite tasks for surgical CI stages; `test` is the umbrella for the two API layers.
 //
-//   ./gradlew sportActivityTest   # REST API only (Sport Activity)
-//   ./gradlew graphqlTest         # GraphQL only
-//   ./gradlew webTest             # Selenium + Cucumber (headless Chrome)
-//   ./gradlew test                # sportActivityTest + graphqlTest (browser-less API run)
+//   ./gradlew sportActivityTest    # REST API only (Sport Activity)
+//   ./gradlew graphqlTest          # GraphQL only
+//   ./gradlew webTest              # Selenium + Cucumber (Chrome — default browser)
+//   ./gradlew webTestChrome        # Explicit Chrome run
+//   ./gradlew webTestFirefox       # Cross-browser: Firefox run
+//   ./gradlew test                 # sportActivityTest + graphqlTest
 
 test {
     useTestNG() {
@@ -63,10 +65,32 @@ tasks.register('graphqlTest', Test) {
     testLogging.showStandardStreams = true
 }
 
+// Shared configuration for every web-suite task.
+def configureWebSuite = { Test t, String browser ->
+    t.group = 'verification'
+    t.useTestNG { suites 'src/test/java/runner/webTestng.xml' }
+    // Honour caller overrides for -Dheadless=... and -Dbrowser=... on the CLI;
+    // fall back to sensible defaults per task.
+    t.systemProperty 'headless', System.getProperty('headless', 'true')
+    t.systemProperty 'browser',  System.getProperty('browser',  browser)
+    t.testLogging.showStandardStreams = true
+    // Keep reports separate per browser so Chrome vs. Firefox runs don't overwrite
+    // each other's output when both are invoked in a single build.
+    t.reports.html.outputLocation      = layout.buildDirectory.dir("reports/tests/${t.name}")
+    t.reports.junitXml.outputLocation  = layout.buildDirectory.dir("test-results/${t.name}")
+}
+
 tasks.register('webTest', Test) {
-    description = 'Runs Selenium + Cucumber BDD tests against the LMS B2B web app.'
-    group = 'verification'
-    useTestNG { suites 'src/test/java/runner/webTestng.xml' }
-    systemProperty 'headless', System.getProperty('headless', 'true')
-    testLogging.showStandardStreams = true
+    description = 'Runs Selenium + Cucumber BDD tests (browser: -Dbrowser=chrome|firefox, default chrome).'
+    configureWebSuite(delegate, 'chrome')
+}
+
+tasks.register('webTestChrome', Test) {
+    description = 'Runs the Cucumber BDD suite in Chrome.'
+    configureWebSuite(delegate, 'chrome')
+}
+
+tasks.register('webTestFirefox', Test) {
+    description = 'Runs the Cucumber BDD suite in Firefox (cross-browser coverage).'
+    configureWebSuite(delegate, 'firefox')
 }

@@ -1,26 +1,19 @@
 # -----------------------------------------------------------------------------
-# CI workflow — Sport Activity API, GraphQL API, and Selenium/BDD Web UI tests.
+# CI workflow — Sport Activity API, GraphQL API, and cross-browser Web UI tests.
 #
 # Two ways to trigger:
-#   1. AUTOMATIC (push / pull_request): runs the full matrix in parallel.
-#   2. MANUAL (workflow_dispatch): pick a suite from a dropdown.
+#   1. AUTOMATIC (push / pull_request): runs the full matrix in parallel
+#      (sportActivity + graphql + web-chrome + web-firefox).
+#   2. MANUAL (workflow_dispatch): pick a suite from a dropdown:
+#        all             → every suite in parallel
+#        sportActivity   → REST API only
+#        graphql         → GraphQL API only
+#        web-chrome      → Selenium + Cucumber, Chrome only
+#        web-firefox     → Selenium + Cucumber, Firefox only
 #
-# Secrets injection
-# -----------------
-# The repo's `src/resources/config.properties` is a template with placeholders.
-# Before running tests, the "Inject secrets" step overwrites the sensitive
-# fields with the values stored in GitHub → Settings → Secrets and variables
-# → Actions. Required secrets:
-#
-#   LMS_ADMIN_EMAIL          → replaces  emailWeb
-#   LMS_ADMIN_PASSWORD       → replaces  passwordWeb
-#   GRAPHQL_BASIC_USERNAME   → replaces  usernameGraphQL
-#   GRAPHQL_BASIC_PASSWORD   → replaces  passwordGraphQL
-#   SPORT_API_EMAIL          → replaces  email
-#   SPORT_API_PASSWORD       → replaces  password
-#   COMPANY_ID               → replaces  companyId
-#
-# Non-sensitive values (baseUrl, url, webUrl, companySlug) stay in the file.
+# Secret injection: each web/api job copies config.properties.example →
+# config.properties and sed-injects only the secrets it needs. Required
+# secrets are documented in the README.
 # -----------------------------------------------------------------------------
 name: CI
 
@@ -40,7 +33,8 @@ on:
           - all
           - sportActivity
           - graphql
-          - web
+          - web-chrome
+          - web-firefox
 
 jobs:
   # ------------------------------------------------------------------
@@ -140,11 +134,11 @@ jobs:
             build/test-results/graphqlTest/
 
   # ------------------------------------------------------------------
-  # Web UI — Selenium + Cucumber (headless Chrome)
+  # Web UI — Chrome (Selenium + Cucumber)
   # ------------------------------------------------------------------
-  web-tests:
-    name: Web UI - Selenium + Cucumber
-    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'all' || github.event.inputs.suite == 'web' }}
+  web-tests-chrome:
+    name: Web UI - Chrome
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'all' || github.event.inputs.suite == 'web-chrome' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -157,8 +151,6 @@ jobs:
           java-version: '17'
 
       - name: Install Chrome
-        # GitHub-hosted ubuntu-latest already has Chrome; this step ensures it
-        # on self-hosted runners as well.
         uses: browser-actions/setup-chrome@v1
 
       - name: Cache Gradle
@@ -179,15 +171,68 @@ jobs:
             -e "s|^companyId=.*|companyId=${COMPANY_ID}|" \
             src/resources/config.properties
 
-      - name: Run Web UI suite (headless)
-        run: ./gradlew webTest --no-daemon -Dheadless=true
+      - name: Run Web UI suite (Chrome, headless)
+        run: ./gradlew webTestChrome --no-daemon -Dheadless=true
 
-      - name: Upload reports (TestNG + Cucumber)
+      - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: web-report
+          name: web-report-chrome
           path: |
-            build/reports/tests/webTest/
-            build/test-results/webTest/
+            build/reports/tests/webTestChrome/
+            build/test-results/webTestChrome/
+            build/cucumber-reports/
+
+  # ------------------------------------------------------------------
+  # Web UI — Firefox (cross-browser coverage)
+  # ------------------------------------------------------------------
+  web-tests-firefox:
+    name: Web UI - Firefox
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'all' || github.event.inputs.suite == 'web-firefox' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Firefox
+        # ubuntu-latest usually ships Firefox pre-installed; this step guarantees
+        # a specific stable build and also handles self-hosted runners.
+        uses: browser-actions/setup-firefox@v1
+
+      - name: Cache Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Prepare config.properties from template
+        run: cp src/resources/config.properties.example src/resources/config.properties
+
+      - name: Inject secrets into config.properties
+        env:
+          LMS_ADMIN_EMAIL: ${{ secrets.LMS_ADMIN_EMAIL }}
+          LMS_ADMIN_PASSWORD: ${{ secrets.LMS_ADMIN_PASSWORD }}
+          COMPANY_ID: ${{ secrets.COMPANY_ID }}
+        run: |
+          sed -i \
+            -e "s|^emailWeb=.*|emailWeb=${LMS_ADMIN_EMAIL}|" \
+            -e "s|^passwordWeb=.*|passwordWeb=${LMS_ADMIN_PASSWORD}|" \
+            -e "s|^companyId=.*|companyId=${COMPANY_ID}|" \
+            src/resources/config.properties
+
+      - name: Run Web UI suite (Firefox, headless)
+        run: ./gradlew webTestFirefox --no-daemon -Dheadless=true
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-report-firefox
+          path: |
+            build/reports/tests/webTestFirefox/
+            build/test-results/webTestFirefox/
             build/cucumber-reports/
