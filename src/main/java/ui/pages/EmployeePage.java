@@ -2,7 +2,11 @@ package ui.pages;
 
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import ui.locators.EmployeeLocator;
+
+import java.time.Duration;
 
 /**
  * Page Object for the Employee list + Add-Employee modal.
@@ -22,11 +26,30 @@ public class EmployeePage extends BasePage {
         super(driver);
     }
 
-    /** Navigate to the Employee list page and wait until the count widget renders. */
+    /**
+     * Navigate to the Employee list page and wait until the count widget renders.
+     *
+     * The first cold navigation on CI can take ~20-40s (Cloudflare handshake +
+     * initial SPA bundle + list GraphQL query). We use a generous 45s wait; if
+     * that still fails we hard-refresh once and retry with the same window
+     * before giving up. Subsequent navigations in the same JVM warm-hit and
+     * complete well under the standard 15s wait.
+     */
     public EmployeePage open() {
         driver.get(baseUrlRoot() + LIST_PATH);
-        waitVisible(EmployeeLocator.LIST_COUNT);
+        try {
+            longWait().until(ExpectedConditions.visibilityOfElementLocated(EmployeeLocator.LIST_COUNT));
+        } catch (Exception first) {
+            // Cold start missed the deadline — refresh and give it one more chance.
+            driver.navigate().refresh();
+            longWait().until(ExpectedConditions.visibilityOfElementLocated(EmployeeLocator.LIST_COUNT));
+        }
         return this;
+    }
+
+    /** Longer wait used only by cold-start navigations that hit Cloudflare + first SPA render. */
+    private WebDriverWait longWait() {
+        return new WebDriverWait(driver, Duration.ofSeconds(45));
     }
 
     /** Derive the base app URL (scheme + host + first path segment) from `webUrl`. */

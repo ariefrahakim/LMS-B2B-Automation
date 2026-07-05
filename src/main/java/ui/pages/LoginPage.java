@@ -2,8 +2,12 @@ package ui.pages;
 
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import ui.locators.LoginLocator;
 import utils.ConfigReader;
+
+import java.time.Duration;
 
 /**
  * Page Object for the LMS B2B login screen.
@@ -27,8 +31,16 @@ public class LoginPage extends BasePage {
     public LoginPage open() {
         driver.manage().deleteAllCookies();
         driver.get(ConfigReader.getProperty("webUrl"));
-        // Wait until the email input renders — signal that the SPA has hydrated.
-        waitVisible(LoginLocator.EMAIL_INPUT);
+        // Cold start on CI (Cloudflare handshake + first SPA hydration) can exceed
+        // the standard 15s wait, so we use a longer 45s window and retry once
+        // with a refresh before giving up.
+        WebDriverWait long45 = new WebDriverWait(driver, Duration.ofSeconds(45));
+        try {
+            long45.until(ExpectedConditions.visibilityOfElementLocated(LoginLocator.EMAIL_INPUT));
+        } catch (Exception first) {
+            driver.navigate().refresh();
+            long45.until(ExpectedConditions.visibilityOfElementLocated(LoginLocator.EMAIL_INPUT));
+        }
         return this;
     }
 
