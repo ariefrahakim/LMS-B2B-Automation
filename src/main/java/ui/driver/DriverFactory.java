@@ -32,7 +32,7 @@ public class DriverFactory {
         WebDriverManager.chromedriver().setup();
 
         ChromeOptions options = new ChromeOptions();
-        if (Boolean.parseBoolean(System.getProperty("headless", "true"))) {
+        if (Boolean.parseBoolean(System.getProperty("headless", "false"))) {
             options.addArguments("--headless=new");
         }
         options.addArguments("--window-size=1440,900");

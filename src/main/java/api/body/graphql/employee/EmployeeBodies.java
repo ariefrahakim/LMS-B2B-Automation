@@ -27,11 +27,16 @@ public class EmployeeBodies {
 
     public static JSONObject update(String id, String newName, String email, String role) {
         String q = "mutation UpdateEmployee($id: String!, $input: EmployeeInput!) { " +
-                "updateEmployee(id: $id, input: $input) { id name email employeeRole } }";
+                "updateEmployee(id: $id, input: $input) { id name email employeeRole username } }";
         JSONObject input = new JSONObject();
         input.put("name", newName);
         input.put("email", email);
         input.put("employeeRole", role);
+        // The server's `updateEmployee` resolver calls `formatUsername(input.username)`
+        // unconditionally — sending null triggers "Cannot read properties of undefined
+        // (reading 'toLowerCase')". Derive a username from the email so the mutation
+        // always has a valid value to lowercase.
+        input.put("username", email.contains("@") ? email.substring(0, email.indexOf('@')) : email);
         JSONObject vars = new JSONObject();
         vars.put("id", id);
         vars.put("input", input);
