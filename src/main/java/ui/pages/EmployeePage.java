@@ -49,7 +49,7 @@ public class EmployeePage extends BasePage {
 
     /** Longer wait used only by cold-start navigations that hit Cloudflare + first SPA render. */
     private WebDriverWait longWait() {
-        return new WebDriverWait(driver, Duration.ofSeconds(45));
+        return new WebDriverWait(driver, Duration.ofSeconds(60));
     }
 
     /** Derive the base app URL (scheme + host + first path segment) from `webUrl`. */

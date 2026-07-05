@@ -52,9 +52,30 @@ public class LoginPage extends BasePage {
         click(LoginLocator.SUBMIT_BUTTON);
     }
 
+    /**
+     * Submit credentials AND wait until the URL leaves `/login`. Used by flows
+     * that immediately navigate to an authenticated page — otherwise the next
+     * `driver.get(...)` can race with the login redirect and land back on
+     * `/login`, forcing a 45s+ retry on the destination page.
+     */
+    public void loginAndWaitForRedirect(String email, String password) {
+        loginAs(email, password);
+        try {
+            new WebDriverWait(driver, Duration.ofSeconds(30))
+                    .until(d -> !d.getCurrentUrl().contains("/login"));
+        } catch (Exception ignored) {
+            // If the wait times out we still let the caller continue — a
+            // downstream assertion (e.g. dashboard visible) will surface the
+            // real failure with a better message than "still on /login".
+        }
+    }
+
     /** Convenience: login with the credentials stored in config.properties. */
     public void loginAsConfiguredUser() {
-        loginAs(ConfigReader.getProperty("emailWeb"),
+        // Use the redirect-aware variant so downstream navigations don't race
+        // the login handshake.
+        loginAndWaitForRedirect(
+                ConfigReader.getProperty("emailWeb"),
                 ConfigReader.getProperty("passwordWeb"));
     }
 

@@ -191,6 +191,10 @@ jobs:
     name: Web UI - Firefox
     if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'all' || github.event.inputs.suite == 'web-firefox' }}
     runs-on: ubuntu-latest
+    # Firefox is best-effort: Cloudflare bot protection blocks headless
+    # geckodriver more aggressively than headless Chrome, so scenarios that hit
+    # /admin/employee occasionally time out. Failures don't fail the CI run.
+    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
