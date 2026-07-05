@@ -9,6 +9,9 @@ build/
 .vscode/
 .DS_Store
 
+# Real credentials — use config.properties.example as a template.
+src/resources/config.properties
+
 # Session / generated fixtures
 src/resources/json/graphql_session.json
 src/resources/json/angkatan_id.json
