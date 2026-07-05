@@ -116,21 +116,25 @@ All credentials & endpoints live in a single file:
 ```properties
 # REST API
 baseUrl=https://sport-reservation-2-api-bootcamp.do.dibimbing.id/api/v1
-email=syukran@gmail.com
-password=syukran123
+email=<SPORT_API_EMAIL>
+password=<SPORT_API_PASSWORD>
 
 # GraphQL API (LMS B2B)
 url=https://lmsb2b.do.dibimbing.id/graphql
-usernameGraphQL=b2bserveruser                           # Basic Auth (gateway)
-passwordGraphQL=ENAcA3Sog22681sAKvih8KkpDKvF2aQ6
+usernameGraphQL=<GRAPHQL_BASIC_USERNAME>                # Basic Auth (gateway)
+passwordGraphQL=<GRAPHQL_BASIC_PASSWORD>
 
 # Web app (Selenium target) + admin user for GraphQL login mutation
 webUrl=https://lms-b2b.do.dibimbing.id/dibimbingqa/login
-emailWeb=arwendymelyn@dibimbing.id
-passwordWeb=s2et9bh6l
-companyId=811637b1-9989-4d45-a9f5-220c5f2354f7
+emailWeb=<LMS_ADMIN_EMAIL>
+passwordWeb=<LMS_ADMIN_PASSWORD>
+companyId=<COMPANY_ID>
 companySlug=dibimbingqa
 ```
+
+Copy `src/resources/config.properties.example` → `src/resources/config.properties`
+and fill in the values locally. In CI they are injected from GitHub Secrets
+(see the [GitHub Actions CI](#github-actions-ci) section).
 
 ---
 
