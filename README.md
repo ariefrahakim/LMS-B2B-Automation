@@ -118,13 +118,25 @@ Reports (regenerated per run):
 - Web UI TestNG: `build/reports/tests/webTest/index.html`
 - Web UI Cucumber: `build/cucumber-reports/report.html`
 
-Filter Cucumber scenarios by tag:
+Filter Cucumber scenarios by tag — the `-Dcucumber.filter.tags` system property is
+propagated to the runner by `build.gradle` (both the umbrella `test` task and the
+`webTest*` tasks). Omit the flag to run every scenario.
 
 ```bash
 ./gradlew webTest -Dcucumber.filter.tags="@positive"
 ./gradlew webTest -Dcucumber.filter.tags="@negative"
 ./gradlew webTest -Dcucumber.filter.tags="@smoke"
+
+# Boolean expressions are supported (Cucumber tag expression syntax):
+./gradlew webTest         -Dcucumber.filter.tags="@smoke and @positive"
+./gradlew webTest         -Dcucumber.filter.tags="@smoke and not @wip"
+./gradlew webTestFirefox  -Dcucumber.filter.tags="@smoke"     # smoke on Firefox
 ```
+
+Currently tagged `@smoke` (fast sanity subset, ~2 scenarios):
+
+- `login.feature` → *Successful login with valid credentials*
+- `employee.feature` → *Employee list page renders with a total count*
 
 ---
 
